@@ -1,0 +1,413 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Sudoku Solver</title>
+    </head>
+    <body>
+        <section class="section">
+            <div class="container has-text-centered">
+                <h1 class="title is-size-1">Sudoku solver</h1>
+                <div class="columns">
+                    <!-- Column 1 -->
+                    <div class="column">
+                        <h4 class="is-size-4 mb-2">Input</h4>
+                        <textarea class="textarea" rows=10 id="s-input">
+000000907
+000420180
+000705026
+100904000
+050000040
+000507009
+920108000
+034059000
+507000000
+                        </textarea>
+                        <h4 class="is-size-8 mt-2">Samples:</h4>
+                        <button class="button mt-2" id="sample_1">Easy</button>
+                        <button class="button mt-2" id="sample_2">Medium</button>
+                        <button class="button mt-2" id="sample_3">Hard</button>
+                    </div>
+                    <!-- Column 2 -->
+                    <div class="column">
+                        <h4 class="is-size-4 mb-2">Solver</h4>
+                        <div class="s-container" id="s-container">
+                            <div class="s-row">
+                                <div class="s-cell">0</div>
+                            </div>
+                        </div>
+                        <button class="button mt-2" id="solve_v1">Solve (v1)</button>
+                        <button class="button mt-2" id="solve_v2">Solve (v2)</button>
+
+                        <p>
+                            <strong>v1 (Newbie algorithm)<br/></strong> For every cell, check its row, column and box to see which numbers are still available. If there is only 1 candidate number, put that number. Repeat the process until all cells are solved. But this simple process could not solve harder Sudoku problems.
+                            <br/>
+                            <strong>v2 (Backtracking algorithm)<br/></strong> Backtracking algorithm like the 8 Queen problem. Check for safety before placing a number on a cell, then proceed to the empty cells recursively. If it's a dead-end, undo 1 step back and try putting another number. If still fails, undo again. Able to solve ALL kinds of valid Sudoku problems.
+                        </p>
+                    </div>
+                    <!-- Column 3 -->
+                    <div class="column">
+                        <h4 class="is-size-4 mb-2">Logs <button class="button is-small mt-2" id="clear">Clear</button></h4>
+                        <p id="logs"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </body>
+    <style>
+        .s-cell {
+            display: inline-block;
+            width: 1.8em;
+            height  : 1.8em;
+            text-align: center;
+            line-height: 1.8em;
+            border: 1px solid black;
+        }
+        .s-cell-0 {
+            background: red;
+            color: red;
+        }
+        button#solve {
+            padding: 5px 20px;
+            margin: 10px 0;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script>
+
+
+Set.difference = function(s1, s2) {
+   if (!s1 instanceof Set || !s2 instanceof Set) {
+      console.log("The given objects are not of type Set");
+      return null;
+   }
+   let newSet = new Set();
+   s1.forEach(elem => newSet.add(elem));
+   s2.forEach(elem => newSet.delete(elem));
+   return newSet;
+}
+
+let q = "";
+let arr_q = [];
+const a =`
+
+`;
+
+`
+851367429
+629485173
+374192856
+287531694
+916874532
+543629781
+492718365
+735946218
+168253947
+`
+
+function str2arr(str) {
+    return str
+    .trim()
+    .split("\n")
+    .map((row) => row.split("").map((val,idx,arr) => parseInt(val) || 0));
+}
+
+function boxCoord(smallRow, smallCol) {
+    return [Math.floor(smallRow/3), Math.floor(smallCol/3)];
+}
+
+function boxCellCoords(smallRow, smallCol) {
+    const [r, c] = boxCoord(smallRow, smallCol);
+    let arr = [];
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            arr.push([r*3+i,c*3+j]);
+        }
+    }
+    return arr;
+}
+
+//----------------------
+// Solvers
+//----------------------
+
+function solve_v1(arr) {
+    $('#logs').append("<span>(v1) Solving...<br/></span>");
+    let forbiddenDict = {};
+    let solvableIdx = [];
+
+    // fillForbiddenDict
+    for (let i = 0; i < 9; i ++) {
+        for (let j = 0; j < 9; j ++) {
+            if (arr_q[i][j] === 0) {
+                forbiddenDict[[i,j]] = new Set();
+                // row
+                for (let k = 0; k < 9; k++) {
+                    forbiddenDict[[i,j]].add(arr_q[i][k]);
+                }
+                // col
+                for (let k = 0; k < 9; k++) {
+                    forbiddenDict[[i,j]].add(arr_q[k][j]);
+                }
+                // box
+                const boxCoords = boxCellCoords(i,j);
+                for (let k = 0; k < boxCoords.length; k++) {
+                    const [ii,jj] = boxCoords[k]
+                    forbiddenDict[[i,j]].add(arr_q[ii][jj]);
+                }
+                // remove 0
+                if (forbiddenDict[[i,j]].has(0)) forbiddenDict[[i,j]].delete(0);
+                if (forbiddenDict[[i,j]].size == 8) solvableIdx.push([i,j]);
+            }
+
+        }
+    }
+
+    // solve solvables
+    for (let i = 0; i < solvableIdx.length; i++) {
+        const [ii,jj] = solvableIdx[i];
+        const val = Set.difference(new Set([1,2,3,4,5,6,7,8,9]), forbiddenDict[[ii,jj]]).values().next().value;
+        $('#logs').append("<span>setting ("+ii+","+jj+") to " + val + "<br/></span>");
+        arr_q[ii][jj] = val;
+        renderSContainer();
+    }
+
+
+    
+
+    if (solvableIdx.length > 0) return true; 
+    check();
+    return false;
+}
+
+
+function solve_v2(arr, step=0) {
+
+    let hash = new Set();
+    let forbiddenDict = {};
+    let approvedDict = {};
+    let zeroCount = 0;
+
+    // console.log(step)
+    if (step > 1) {
+        return;
+    }
+    $('#logs').append("<span>(v2) Solving...<br/></span>");
+    
+    let solvableIdx = [];
+
+    // fillForbiddenDict
+    for (let i = 0; i < 9; i ++) {
+        for (let j = 0; j < 9; j ++) {
+            if (arr_q[i][j] === 0) {
+                forbiddenDict[[i,j]] = new Set();
+                // row
+                for (let k = 0; k < 9; k++) {
+                    forbiddenDict[[i,j]].add(arr_q[i][k]);
+                }
+                // col
+                for (let k = 0; k < 9; k++) {
+                    forbiddenDict[[i,j]].add(arr_q[k][j]);
+                }
+                // box
+                const boxCoords = boxCellCoords(i,j);
+                for (let k = 0; k < boxCoords.length; k++) {
+                    const [ii,jj] = boxCoords[k]
+                    forbiddenDict[[i,j]].add(arr_q[ii][jj]);
+                }
+                // remove 0
+                if (forbiddenDict[[i,j]].has(0)) forbiddenDict[[i,j]].delete(0);
+            } else {
+                hash.add(arr_q[i][j] + " in row " + i);
+                hash.add(arr_q[i][j] + " in col " + j);
+                hash.add(arr_q[i][j] + " in box " + boxCoord(i,j));
+            }
+
+        }
+    }
+
+    if (Object.keys(forbiddenDict).length === 0) return true;
+
+    // approvedDict
+    for (let obj in forbiddenDict) {
+        approvedDict[obj] = Array.from(Set.difference(new Set([1,2,3,4,5,6,7,8,9]), forbiddenDict[obj]));
+    }
+
+    for (let i = 0; i < 9; i ++) {
+        for (let j = 0; j < 9; j ++) {
+            if (arr_q[i][j] === 0) zeroCount++;
+        }
+    }
+
+    // sort min to max to minimize fan-out
+    let remainingKeys = Object.keys(approvedDict);
+    console.log(remainingKeys.sort(function(a,b) { return approvedDict[a].length - approvedDict[b].length }));
+
+    // solve
+    const success = solveHelper(arr, approvedDict, hash, Object.keys(approvedDict));
+    if (success) {
+        $('#logs').append('<span>Solved!<br/></span>');
+        renderSContainer();
+    } else {
+        $('#logs').append('<span>Cannot be solved!<br/></span>');
+    }
+
+    check();
+}
+
+function solveHelper(arr, approvedDict, hash, remainingKeys) {
+    // console.log('-> solveHelper')
+    // console.log(arr)
+
+    if (remainingKeys.length == 0) {
+        return true;
+    }
+
+    for (let i = 0; i < remainingKeys.length; i++) {
+        const key = remainingKeys[i]
+        let [row, _, col] = key;
+        row = parseInt(row);
+        col = parseInt(col);
+        const valuesToTry = approvedDict[key];
+        for (let j = 0; j < valuesToTry.length; j++) {
+            const val = valuesToTry[j];
+            const a = val + " in row " + row;
+            const b = val + " in col " + col;
+            const c = val + " in box " + boxCoord(row,col);
+            if (hash.has(a) || hash.has(b) || hash.has(c)) {
+                // not safe
+                // $('#logs').append('condition not safe (' + val + ' at ' + row + ' ' + col + ') - undo<br/>');
+                continue;
+            } else {
+                // safe
+                // $('#logs').append('condition safe (' + val + ' at ' + row + ' ' + col + ')<br/>');
+                hash.add(a);
+                hash.add(b);
+                hash.add(c);
+                arr_q[row][col] = val;
+
+                // recursion - go a level deeper
+                const success = solveHelper(arr, approvedDict, hash, [...remainingKeys].filter(function(val, idx, arr) {return val != key}));
+                if (success) return true;
+
+                // deeper level failed -> undo the step
+                arr_q[row][col] = 0;
+                hash.delete(a);
+                hash.delete(b);
+                hash.delete(c);
+            }
+        }
+        return false;
+    }
+}
+
+
+
+//----------------------
+// Renderer
+//----------------------
+
+function check() {
+    // sanity check
+    $('#logs').append('<span>Checking...<br/></span>');
+    const myhash = new Set();
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            const a = arr_q[i][j] + ' in row ' + i;
+            const b = arr_q[i][j] + ' in col ' + j;
+            const c = arr_q[i][j] + ' in box ' + boxCoord(i,j);
+            if (myhash.has(a) || myhash.has(b) || myhash.has(c)) {
+                $('#logs').append('<span>Check failed!<br/></span>');
+                return;
+            }
+            myhash.add(a);
+            myhash.add(b);
+            myhash.add(c);
+        }
+    }
+    $('#logs').append('<span>Check successful!<br/></span>');
+}
+
+//----------------------
+// Renderer
+//----------------------
+
+function renderSContainer() {
+    $container = $('#s-container')
+    $container.empty();
+    for (let i = 0; i < 9; i ++) {
+        $row = $('<div class="s-row"></div>');
+        for (let j = 0; j < 9; j ++) {
+            $cell = $('<div class="s-cell s-cell-'+arr_q[i][j]+'">'+(arr_q[i][j] || '?')+'</div>');
+            $row.append($cell);
+        }
+        $container.append($row);
+    }
+}
+
+function copyInput2Container() {
+    q = $('#s-input').val();
+    arr_q = str2arr(q);
+    renderSContainer();
+}
+
+//----------------------
+// Samples
+//----------------------
+
+const SAMPLES = [
+`049300057
+500760900
+027050610
+090017002
+218000040
+003020006
+000045370
+004090001
+180673009
+`, 
+`003020600
+900305001
+001806400
+008102900
+700000008
+006708200
+002609500
+800203009
+005010300
+`, 
+`000000907
+000420180
+000705026
+100904000
+050000040
+000507009
+920108000
+034059000
+507000000
+`]
+
+
+//----------------------
+// Main
+//----------------------
+
+$(document).ready(function() {
+    copyInput2Container();
+    // input
+    $('textarea#s-input').keyup(()=> { copyInput2Container();})
+    $('#sample_1').click(()=> { $('#s-input').val(SAMPLES[0]); copyInput2Container();})
+    $('#sample_2').click(()=> { $('#s-input').val(SAMPLES[1]); copyInput2Container();})
+    $('#sample_3').click(()=> { $('#s-input').val(SAMPLES[2]); copyInput2Container();})
+
+    // solve
+    $("button#solve_v1").click(() => { solve_v1(arr_q); });
+    $("button#solve_v2").click(() => { solve_v2(arr_q); });
+
+    // logs
+    $("button#clear").click(() => { $('#logs').html("") });
+});
+    
+    </script>
+</html>
+
