@@ -99,21 +99,6 @@ Set.difference = function(s1, s2) {
 
 let q = "";
 let arr_q = [];
-const a =`
-
-`;
-
-`
-851367429
-629485173
-374192856
-287531694
-916874532
-543629781
-492718365
-735946218
-168253947
-`
 
 function str2arr(str) {
     return str
@@ -181,9 +166,6 @@ function solve_v1(arr) {
         arr_q[ii][jj] = val;
         renderSContainer();
     }
-
-
-    
 
     if (solvableIdx.length > 0) return true; 
     check();
@@ -266,9 +248,6 @@ function solve_v2(arr, step=0) {
 }
 
 function solveHelper(arr, approvedDict, hash, remainingKeys) {
-    // console.log('-> solveHelper')
-    // console.log(arr)
-
     if (remainingKeys.length == 0) {
         return true;
     }
@@ -314,7 +293,7 @@ function solveHelper(arr, approvedDict, hash, remainingKeys) {
 
 
 //----------------------
-// Renderer
+// Checker
 //----------------------
 
 function check() {
@@ -395,7 +374,7 @@ const SAMPLES = [
 920108000
 034059000
 507000000
-`]
+`];
 
 
 //----------------------
