@@ -326,7 +326,7 @@ function check() {
             const a = arr_q[i][j] + ' in row ' + i;
             const b = arr_q[i][j] + ' in col ' + j;
             const c = arr_q[i][j] + ' in box ' + boxCoord(i,j);
-            if (~arr_q[i][j] || myhash.has(a) || myhash.has(b) || myhash.has(c)) {
+            if (!arr_q[i][j] || myhash.has(a) || myhash.has(b) || myhash.has(c)) {
                 $('#logs').append('<span>Check failed!<br/></span>');
                 return;
             }
